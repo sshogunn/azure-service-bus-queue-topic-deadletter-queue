@@ -1,0 +1,20 @@
+queue:
+  send:
+    connection:
+    entityPath:
+  listen:
+    connection:
+    entityPath:
+  deadLetter:
+    connection:
+    entityPath:
+topic:
+  send:
+    connection:
+    entityPath:
+  listen:
+    connection:
+    entityPath:
+
+messages:
+  count: 100
