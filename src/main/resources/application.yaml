@@ -17,4 +17,13 @@ topic:
     entityPath:
 
 messages:
-  count: 100
+  factories:
+    count: 3
+  count: 1000
+  batch:
+    size: 100
+
+logging:
+  file: importing.log
+  level:
+    root: INFO

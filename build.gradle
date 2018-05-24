@@ -17,7 +17,7 @@ apply plugin: 'io.spring.dependency-management'
 
 group = 'com.epam.azure'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = 1.8
+sourceCompatibility = 1.9
 
 repositories {
 	mavenCentral()
@@ -33,6 +33,7 @@ dependencies {
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 	compile('com.microsoft.azure:azure-servicebus:1.2.5')
 	compile('com.fasterxml.jackson.core:jackson-databind:2.9.5')
+	compile('javax.annotation:javax.annotation-api:1.2')
 }
 
 dependencyManagement {

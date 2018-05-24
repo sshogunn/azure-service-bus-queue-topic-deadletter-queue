@@ -1,7 +1,6 @@
 package com.epam.azure.servicebus.send;
 
 import com.microsoft.azure.servicebus.*;
-import com.microsoft.azure.servicebus.primitives.ServiceBusException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -11,15 +10,14 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class DeadLetterConsumer implements IMessageHandler {
     private final QueueClient sendClient;
-    private final QueueClient deadLetterClient;
 
-    public DeadLetterConsumer(QueueClient sendClient, QueueClient deadLetterClient) {
+    public DeadLetterConsumer(QueueClient sendClient) {
         this.sendClient = sendClient;
-        this.deadLetterClient = deadLetterClient;
     }
 
     @Override
     public CompletableFuture<Void> onMessageAsync(IMessage message) {
+        log.debug("Received a command with from Dead Letter queue with message id {}", message.getMessageId());
         return resubmitMessage(message);
     }
 
@@ -30,21 +28,21 @@ public class DeadLetterConsumer implements IMessageHandler {
 
     private CompletableFuture<Void> resubmitMessage(IMessage message) {
         val messageId = message.getMessageId();
-        try {
-            log.info("A message has not been sent and it is received from dead letter queue. Message id is {}", messageId);
-            val resubmitMessage = new Message(message.getBody());
-            resubmitMessage.setMessageId(messageId);
-            resubmitMessage.setContentType(message.getContentType());
-            resubmitMessage.setTimeToLive(Duration.ofMinutes(2));
-            log.info("A message with id {} will be resubmitted one more time", messageId);
-            this.sendClient.send(resubmitMessage);
-            return this.deadLetterClient.completeAsync(message.getLockToken());
-        } catch (InterruptedException | ServiceBusException e) {
-            val error = "A message with id " + messageId + " cannot be resent due errors";
-            log.error(error, e);
-            CompletableFuture<Void> failure = new CompletableFuture<>();
-            failure.completeExceptionally(e);
-            return failure;
-        }
+        log.info("A message has not been sent and it is received from dead letter queue. Message id is {}", messageId);
+        val resubmitMessage = new Message(message.getBody());
+        resubmitMessage.setMessageId(messageId);
+        resubmitMessage.setContentType(message.getContentType());
+        resubmitMessage.setTimeToLive(Duration.ofMinutes(2));
+        log.info("A message with id {} will be resubmitted one more time", messageId);
+        resubmit(resubmitMessage);
+        return CompletableFuture.completedFuture(null);
+    }
+
+    private void resubmit(Message message) {
+        this.sendClient.sendAsync(message).exceptionally(throwable -> {
+            log.warn("COMMAND WITH ID {} CANNOT BE PROCESSED BY DEAD LETTER CONSUMER, will be recent one more time", message.getMessageId());
+            resubmit(message);
+            return null;
+        });
     }
 }

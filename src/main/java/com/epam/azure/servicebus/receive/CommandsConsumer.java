@@ -1,19 +1,26 @@
 package com.epam.azure.servicebus.receive;
 
-import com.microsoft.azure.servicebus.*;
+import com.epam.azure.servicebus.EventsBatchSender;
+import com.microsoft.azure.servicebus.ExceptionPhase;
+import com.microsoft.azure.servicebus.IMessage;
+import com.microsoft.azure.servicebus.IMessageHandler;
+import com.microsoft.azure.servicebus.Message;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @RequiredArgsConstructor
 public class CommandsConsumer implements IMessageHandler {
-    private final TopicClient eventSendClient;
+    private final EventsBatchSender eventsBatchSender;
 
     @Override
     public CompletableFuture<Void> onMessageAsync(IMessage message) {
-        sendConfirmationEvent("Message has been received and processed, message id - " + message.getMessageId());
+        val messageId = message.getMessageId();
+        log.debug("Command has been received and completed with message id {}", messageId);
+        sendConfirmationEvent("Message has been received and processed, message id - " + messageId, messageId);
         return CompletableFuture.completedFuture(null);
     }
 
@@ -22,7 +29,9 @@ public class CommandsConsumer implements IMessageHandler {
         log.error("Message cannot be processed due processing failure " + phase + "-" + exception.getMessage(), exception);
     }
 
-    private void sendConfirmationEvent(String messageText) {
-        this.eventSendClient.sendAsync(new Message(messageText));
+    private void sendConfirmationEvent(String messageText, String messagesId) {
+        val message = new Message(messageText);
+        message.setMessageId(messagesId);
+        this.eventsBatchSender.send(message);
     }
 }
